@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+{% block title %}Processing — Flooring Takeoff{% endblock %}
+{% block content %}
+<section class="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
+  <div class="flex items-center gap-3 mb-2">
+    <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+    <h1 class="text-xl font-semibold">Running takeoff</h1>
+    <span class="text-xs text-slate-500 ml-auto">job <code>{{ job_id }}</code></span>
+  </div>
+  <p class="text-slate-600 text-sm mb-6">The pipeline runs through 7 phases. This page polls progress every second.</p>
+
+  <div id="progress" hx-get="/job/{{ job_id }}/progress" hx-trigger="load, every 1s" hx-target="#progress" hx-swap="innerHTML">
+    {% include "progress.html" %}
+  </div>
+</section>
+{% endblock %}

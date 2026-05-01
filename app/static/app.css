@@ -1,0 +1,5 @@
+/* tiny custom polish on top of Tailwind */
+.tab-btn { transition: background 120ms ease, color 120ms ease; }
+.tab-btn.active { color: #064e3b; }
+pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; padding: 0 4px; background: #f1f5f9; border-radius: 3px; }

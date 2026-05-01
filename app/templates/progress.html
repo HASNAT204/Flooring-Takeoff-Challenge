@@ -1,0 +1,41 @@
+{% set stages = [
+    ('parsing', 'Reading PDFs'),
+    ('identifying_finish_plan', 'Identifying finish plan'),
+    ('parsing_schedule', 'Parsing finish schedule'),
+    ('extracting_zones', 'Extracting room zones'),
+    ('measuring_linear', 'Computing linear measurements'),
+    ('assembling', 'Assembling line items'),
+    ('generating_outputs', 'Generating outputs'),
+] %}
+{% set stage_ids = stages | map(attribute=0) | list %}
+{% set current_stage = status.get('stage', 'queued') %}
+{% set current_idx = stage_ids.index(current_stage) if current_stage in stage_ids else -1 %}
+{% set progress_pct = (status.get('progress', 0) * 100) | round(0, 'floor') %}
+{% if status.get('error') %}
+<div class="bg-red-50 border border-red-200 text-red-900 rounded-lg p-4">
+  <div class="font-medium mb-2">Pipeline error</div>
+  <pre class="text-xs whitespace-pre-wrap">{{ status.get('error') }}</pre>
+</div>
+{% else %}
+<div class="space-y-3">
+  <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+    <div class="bg-emerald-500 h-3 transition-all duration-500" style="width: {{ progress_pct }}%"></div>
+  </div>
+  <div class="text-sm text-slate-700">{{ status.get('message', 'Working...') }}</div>
+  <ol class="space-y-1 text-sm">
+    {% for stage_id, label in stages %}
+      {% set idx = loop.index0 %}
+      {% if current_stage == stage_id %}
+        <li class="flex items-center gap-2 text-emerald-700 font-medium"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>{{ label }}</li>
+      {% elif current_idx >= 0 and idx < current_idx %}
+        <li class="flex items-center gap-2 text-slate-500"><span class="text-emerald-500">✓</span>{{ label }}</li>
+      {% else %}
+        <li class="flex items-center gap-2 text-slate-400"><span class="w-2 h-2 rounded-full bg-slate-300"></span>{{ label }}</li>
+      {% endif %}
+    {% endfor %}
+  </ol>
+</div>
+{% if is_done %}
+<script>setTimeout(() => window.location.reload(), 600);</script>
+{% endif %}
+{% endif %}

@@ -1,0 +1,131 @@
+{% extends "_base.html" %}
+{% block title %}Results — Flooring Takeoff{% endblock %}
+{% block header_right %}job <code>{{ job_id }}</code>{% endblock %}
+{% block content %}
+<section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div class="border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+    <h1 class="text-xl font-semibold">{{ prediction.project }}</h1>
+    <span class="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">overall confidence {{ '{:.0%}'.format(prediction.overall_confidence) }}</span>
+    <span class="text-xs text-slate-500">scale {{ prediction.scale.ratio }}</span>
+    <a href="/" class="ml-auto text-sm text-emerald-700 hover:underline">+ New takeoff</a>
+  </div>
+
+  <div class="px-6 pt-4 flex gap-2 border-b border-slate-200">
+    <button onclick="showTab('marked')" class="tab-btn active px-4 py-2 rounded-t border border-slate-200 border-b-0 bg-white text-sm font-medium">Marked PDF</button>
+    <button onclick="showTab('sheet')" class="tab-btn px-4 py-2 rounded-t border border-slate-200 border-b-0 bg-slate-50 text-sm">Spreadsheet</button>
+    <button onclick="showTab('json')" class="tab-btn px-4 py-2 rounded-t border border-slate-200 border-b-0 bg-slate-50 text-sm">prediction.json</button>
+    {% if gold_present %}
+    <button onclick="showTab('eval')" class="tab-btn px-4 py-2 rounded-t border border-slate-200 border-b-0 bg-slate-50 text-sm">Evaluation</button>
+    {% endif %}
+  </div>
+
+  <!-- Marked PDF tab -->
+  <div id="tab-marked" class="tab-pane">
+    <div class="px-6 py-3 border-b border-slate-200 flex items-center gap-3">
+      <div class="text-sm text-slate-600">Page A101 with measured zones, leader callouts, and a per-code legend.</div>
+      <a href="/job/{{ job_id }}/marked.pdf" download class="ml-auto text-sm text-emerald-700 hover:underline">Download marked.pdf</a>
+    </div>
+    <iframe src="/job/{{ job_id }}/marked.pdf" class="w-full h-[70vh] border-0"></iframe>
+  </div>
+
+  <!-- Spreadsheet tab -->
+  <div id="tab-sheet" class="tab-pane hidden">
+    <div class="px-6 py-3 border-b border-slate-200 flex items-center gap-3">
+      <div class="text-sm text-slate-600">Itemised flooring takeoff with provenance. Costs intentionally blank — quantities only.</div>
+      <a href="/job/{{ job_id }}/takeoff.xlsx" download class="ml-auto text-sm text-emerald-700 hover:underline">Download takeoff.xlsx</a>
+    </div>
+    <div class="overflow-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 sticky top-0">
+          <tr>
+            <th class="text-left px-3 py-2 font-medium">#</th>
+            <th class="text-left px-3 py-2 font-medium">Item</th>
+            <th class="text-left px-3 py-2 font-medium">Description</th>
+            <th class="text-right px-3 py-2 font-medium">Qty</th>
+            <th class="text-right px-3 py-2 font-medium">Wastage</th>
+            <th class="text-right px-3 py-2 font-medium">Qty + Wastage</th>
+            <th class="text-left px-3 py-2 font-medium">Unit</th>
+            <th class="text-right px-3 py-2 font-medium">Conf</th>
+            <th class="text-left px-3 py-2 font-medium">Method</th>
+            <th class="text-left px-3 py-2 font-medium">Page</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in prediction.line_items %}
+          <tr class="border-t border-slate-100 hover:bg-slate-50">
+            <td class="px-3 py-2 text-slate-500">{{ loop.index }}</td>
+            <td class="px-3 py-2 font-medium">{{ it.item_id }}</td>
+            <td class="px-3 py-2 text-slate-700 whitespace-pre-line">{{ it.description }}</td>
+            <td class="px-3 py-2 text-right tabular-nums">{{ '{:,.2f}'.format(it.quantity) }}</td>
+            <td class="px-3 py-2 text-right tabular-nums text-slate-500">{{ '{}%'.format(it.wastage_pct|int) }}</td>
+            <td class="px-3 py-2 text-right tabular-nums">{{ '{:,.2f}'.format(it.quantity_with_wastage) }}</td>
+            <td class="px-3 py-2 text-slate-500">{{ it.unit }}</td>
+            <td class="px-3 py-2 text-right tabular-nums {% if it.confidence >= 0.8 %}text-emerald-700{% elif it.confidence >= 0.5 %}text-amber-700{% else %}text-red-600{% endif %}">{{ '{:.0%}'.format(it.confidence) }}</td>
+            <td class="px-3 py-2 text-xs text-slate-500">{{ it.method }}</td>
+            <td class="px-3 py-2 text-xs text-slate-500">{{ it.source_pages | join(', ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-slate-300 font-medium bg-slate-50">
+            <td colspan="3" class="px-3 py-2">Totals</td>
+            <td class="px-3 py-2 text-right tabular-nums">{{ '{:,.2f}'.format(prediction.totals.flooring_sf) }}</td>
+            <td colspan="2"></td>
+            <td class="px-3 py-2">SF</td>
+            <td colspan="3"></td>
+          </tr>
+          <tr class="font-medium bg-slate-50">
+            <td colspan="3"></td>
+            <td class="px-3 py-2 text-right tabular-nums">{{ '{:,.2f}'.format(prediction.totals.base_lf + prediction.totals.other_lf) }}</td>
+            <td colspan="2"></td>
+            <td class="px-3 py-2">LF</td>
+            <td colspan="3"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- JSON tab -->
+  <div id="tab-json" class="tab-pane hidden">
+    <div class="px-6 py-3 border-b border-slate-200 flex items-center gap-3">
+      <div class="text-sm text-slate-600">Machine-readable takeoff with full provenance for every quantity.</div>
+      <a href="/job/{{ job_id }}/prediction.json" download class="ml-auto text-sm text-emerald-700 hover:underline">Download prediction.json</a>
+    </div>
+    <pre class="bg-slate-900 text-slate-100 text-xs p-4 overflow-auto h-[70vh]">{{ prediction | tojson(indent=2) }}</pre>
+  </div>
+
+  <!-- Evaluation tab -->
+  {% if gold_present %}
+  <div id="tab-eval" class="tab-pane hidden">
+    <div class="px-6 py-4">
+      {% if has_evaluation %}
+        <div class="mb-3 flex items-center gap-3 text-sm">
+          <span class="text-slate-700">Evaluation complete.</span>
+          <a href="/job/{{ job_id }}/evaluation.html" target="_blank" class="text-emerald-700 hover:underline">Open in new tab ↗</a>
+          <form method="post" action="/job/{{ job_id }}/evaluate" class="ml-auto">
+            <button class="text-xs text-slate-500 hover:text-emerald-700">Re-run</button>
+          </form>
+        </div>
+        <iframe src="/job/{{ job_id }}/evaluation.html" class="w-full h-[65vh] border border-slate-200 rounded"></iframe>
+      {% else %}
+        <p class="text-sm text-slate-600 mb-3">Run the evaluator to compare this takeoff against <code>gold/gold_takeoff.xlsx</code>.</p>
+        <form method="post" action="/job/{{ job_id }}/evaluate">
+          <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2 rounded">Run evaluation</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active', 'bg-white'); b.classList.add('bg-slate-50'); });
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  event.currentTarget.classList.add('active', 'bg-white');
+  event.currentTarget.classList.remove('bg-slate-50');
+}
+</script>
+{% endblock %}

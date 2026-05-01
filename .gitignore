@@ -1,0 +1,19 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.pytest_cache/
+
+# Runtime artifacts
+uploads/
+outputs/jobs/
+
+# Gold/evaluation reference (must never be committed)
+gold/
+
+# IDE
+.vscode/
+.idea/
