@@ -6,15 +6,13 @@
   <p class="text-slate-600 mb-6">Upload the construction PDF set. The pipeline identifies the finish plan, parses the finish schedule, measures each flooring zone, and generates a marked-up drawing plus an itemised spreadsheet.</p>
 
   <form id="upload-form" method="post" action="/upload" enctype="multipart/form-data" class="space-y-4">
-    <label for="files" class="block">
-      <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-lg p-10 text-center hover:border-emerald-500 hover:bg-emerald-50/40 transition cursor-pointer">
-        <div class="text-3xl mb-2">📐</div>
-        <div class="font-medium text-slate-700">Drop PDF files here, or click to browse</div>
-        <div class="text-sm text-slate-500 mt-1">Multiple files OK. Cover letters, finish plans, drawing sets — anything from the project package.</div>
-        <input id="files" name="files" type="file" accept="application/pdf" multiple class="hidden">
-      </div>
-      <div id="file-list" class="mt-3 text-sm text-slate-700 space-y-1"></div>
-    </label>
+    <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-lg p-10 text-center hover:border-emerald-500 hover:bg-emerald-50/40 transition cursor-pointer">
+      <div class="text-3xl mb-2">📐</div>
+      <div class="font-medium text-slate-700">Drop PDF files here, or click to browse</div>
+      <div class="text-sm text-slate-500 mt-1">Multiple files OK. Cover letters, finish plans, drawing sets — anything from the project package.</div>
+      <input id="files" name="files" type="file" accept="application/pdf" multiple class="hidden">
+    </div>
+    <div id="file-list" class="mt-3 text-sm text-slate-700 space-y-1"></div>
     <button type="submit" id="run-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-3 rounded-lg transition disabled:opacity-50" disabled>Run takeoff</button>
   </form>
 
@@ -70,7 +68,18 @@ fileInput.addEventListener('change', refreshFiles);
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
   const dt = new DataTransfer();
-  Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf').forEach(f => dt.items.add(f));
+  const seen = new Set();
+  // Keep existing files first so a second drop appends rather than replaces
+  Array.from(fileInput.files || []).forEach(f => {
+    const key = `${f.name}|${f.size}`;
+    if (!seen.has(key)) { seen.add(key); dt.items.add(f); }
+  });
+  Array.from(e.dataTransfer.files)
+    .filter(f => f.type === 'application/pdf')
+    .forEach(f => {
+      const key = `${f.name}|${f.size}`;
+      if (!seen.has(key)) { seen.add(key); dt.items.add(f); }
+    });
   fileInput.files = dt.files;
   refreshFiles();
 });
